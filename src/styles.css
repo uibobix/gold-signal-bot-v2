@@ -21,7 +21,10 @@
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-success: var(--success);
+  --color-danger: var(--danger);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
