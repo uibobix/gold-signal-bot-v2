@@ -2,7 +2,7 @@
 
 - what changed
 
-## Active Tool
+## Active tool
 
 - Lovable / Cursor / Codex
 
@@ -21,15 +21,16 @@
 
 ## Testing
 
-- [ ] `npm run build`
-- [ ] `npm run lint`
+- [ ] `bun run build` (or `npm run build`)
+- [ ] `bun run lint` (or `npm run lint`)
 - [ ] manual verification completed
 - [ ] not run, explain why
 
 ## Runtime
 
-- [ ] Lovable is the intended live runtime
-- [ ] direct Wrangler deploy is intended
+- [ ] local dev only (`bun run dev`)
+- [ ] Cloudflare Workers deploy intended
+- [ ] Lovable hosted preview / publish involved
 - [ ] no runtime change
 
 ## Deploy / Publish
@@ -37,10 +38,10 @@
 - [ ] no deploy step required
 - [ ] Lovable sync required
 - [ ] Lovable publish/update required
-- [ ] secret change required
+- [ ] `wrangler deploy` or secret change required
 - [ ] branch is not ready for merge yet
 
-## Handoff Notes
+## Handoff notes
 
 - current status
 - blockers

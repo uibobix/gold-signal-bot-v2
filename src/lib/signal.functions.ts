@@ -128,7 +128,19 @@ async function readLocalSecretFromDevVars(name: string): Promise<string | undefi
 async function resolveTwelveDataApiKey(): Promise<string | undefined> {
   const fromProcess = process.env.TWELVEDATA_API_KEY?.trim();
   if (fromProcess) return fromProcess;
-  return readLocalSecretFromDevVars("TWELVEDATA_API_KEY");
+
+  const fromDevVars = await readLocalSecretFromDevVars("TWELVEDATA_API_KEY");
+  if (fromDevVars) return fromDevVars;
+
+  try {
+    const { env } = await import("cloudflare:workers");
+    const fromCf = env.TWELVEDATA_API_KEY?.trim();
+    if (fromCf) return fromCf;
+  } catch {
+    /* not a Workers bundle (e.g. some local tooling) */
+  }
+
+  return undefined;
 }
 
 // =============== math primitives ===============
@@ -587,7 +599,12 @@ async function fetchSeries(
 export const getSignal = createServerFn({ method: "GET" }).handler(
   async (): Promise<SignalResult> => {
     const apiKey = await resolveTwelveDataApiKey();
-    if (!apiKey) return { ok: false, error: "TWELVEDATA_API_KEY is not configured" };
+    if (!apiKey)
+      return {
+        ok: false,
+        error:
+          "TWELVEDATA_API_KEY is not configured. Use .env (see .env.example), .dev.vars for Wrangler dev, or wrangler secret put TWELVEDATA_API_KEY on Cloudflare.",
+      };
 
     try {
       const [candles, dxyCandles] = await Promise.all([

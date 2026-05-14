@@ -1,83 +1,76 @@
 # Session Handoff
 
-Use this file as the operating checklist when switching between Lovable, Cursor,
-and Codex because tool memory does not transfer, but GitHub state does.
+Use this checklist when switching between Lovable, Cursor, and Codex. Tool
+memory does not transfer; GitHub state does.
 
-## Branch Naming
+## Branch naming
 
-- `main`: stable branch
-- `codex/*`: Codex work
-- `cursor/*`: Cursor work
-- `lovable/*`: optional Lovable staging work
+- `main`: stable branch  
+- `codex/*`: Codex work  
+- `cursor/*`: Cursor work  
+- `lovable/*`: optional Lovable staging  
 
-## Start Checklist
+## Start checklist
 
-1. Confirm the repo and branch you are about to edit.
-2. Pull the latest branch from GitHub.
-3. Read the latest PR description or latest commit message on that branch.
-4. Check whether there are open comments, failing checks, or missing secrets.
-5. Confirm whether Lovable is publishing from `main`.
-6. Read the PR template fields if the branch already has an open PR.
+1. Confirm repo and branch.  
+2. `git pull` the latest for that branch.  
+3. Read the latest PR description or newest commit on the branch.  
+4. Open **GitHub → Actions** and confirm checks for `main` / your branch.  
+5. If Twelve Data fails locally, confirm `.env` or `.dev.vars` has `TWELVEDATA_API_KEY`.  
+6. If Lovable hosts the app, confirm it is synced to the branch you expect (usually `main`).  
+7. If the branch has an open PR, skim the PR template fields.  
 
-## End Checklist
+## End checklist
 
-1. Make sure local changes are either committed or intentionally discarded.
-2. Push the branch to GitHub.
-3. Leave a clear handoff in the PR description, PR comment, or final commit
-   message covering:
-   - what changed
-   - what was tested
-   - what still needs work
-   - whether production secrets or publishing steps are required
-4. If the branch is ready, open or update the PR into `main`.
-5. If `main` changed, re-sync Lovable and publish/update the live app.
-6. If you are handing off mid-task, say which tool should pick it up next.
+1. Commit or intentionally discard local changes.  
+2. Push the branch to GitHub.  
+3. Leave a clear handoff in the PR or final commit: what changed, what was tested, blockers, next owner.  
+4. Open or update the PR into `main` when ready.  
+5. If `main` changed and Lovable is the host, sync and publish/update there.  
+6. If production or secrets changed, say so explicitly in the PR.  
 
-## Required Handoff Fields
+## Required handoff fields
 
-Every branch handoff should capture these fields somewhere visible on GitHub:
+Capture these on GitHub (PR body or comment):
 
-- active tool
-- scope
-- files changed
-- test status
-- deploy status
-- blockers
-- next recommended action
+- active tool  
+- scope  
+- files changed  
+- test status (`bun run lint` / `bun run build` or note why skipped)  
+- deploy / publish status  
+- blockers  
+- next recommended action  
 
-## Fastest Safe Workflow
+## Fastest safe workflow
 
-1. Work in a feature branch.
-2. Push early and often.
-3. Use the PR as the shared notebook.
-4. Merge only when the branch state is understandable without chat history.
-5. Treat `main` as publishable, not experimental.
+1. Feature branch, not experimental work directly on `main`.  
+2. Push early and often.  
+3. Use the PR as the shared notebook.  
+4. Merge only when CI is green and the diff is understandable without chat.  
+5. Treat `main` as publishable.  
 
-## Emergency Handoff
+## Emergency handoff
 
-If one service hits limits mid-task:
+If a service hits limits mid-task:
 
-1. Push the branch immediately.
-2. Write a short PR comment or commit message with the current state.
-3. Move to the next service.
-4. Continue from the pushed branch, not from local unstaged work.
-5. Do not rewrite the task from memory if the branch or PR can say it directly.
+1. Push immediately.  
+2. Short PR comment or commit message with current state.  
+3. Continue from the pushed branch in the next tool.  
 
-## Lovable-Specific Notes
+## Lovable-specific notes
 
-- Lovable should usually stay on `main`.
-- After merging to `main`, Lovable may still need a manual sync and
-  publish/update step.
-- Lovable Cloud secrets must contain `TWELVEDATA_API_KEY`.
-- If Lovable looks stale, verify branch sync before debugging app logic.
+- Prefer staying attached to `main` for publishing.  
+- After merges, Lovable may need a manual sync and publish/update.  
+- If Lovable **hosted preview** calls Twelve Data, set `TWELVEDATA_API_KEY` in Lovable Cloud secrets for that preview.  
+- For **local** or **Cloudflare-only** workflows, use `.env` / Wrangler secrets instead; Lovable secrets are not required.  
 
-## Cursor-Specific Notes
+## Cursor-specific notes
 
-- Pull before editing.
-- Avoid long-lived local-only changes.
-- Prefer small focused branches over one giant working branch.
+- Pull before editing.  
+- Avoid long-lived local-only changes.  
+- Prefer small focused branches.  
 
-## Codex-Specific Notes
+## Codex-specific notes
 
-- Work in `codex/*` branches unless explicitly asked otherwise.
-- Leave testing and next-step notes in the PR so another tool can resume cleanly.
+- Prefer `codex/*` branches.  
+- Leave testing and next-step notes in the PR.  
