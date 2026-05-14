@@ -24,6 +24,12 @@ npm install
 cp .dev.vars.example .dev.vars
 ```
 
+Then edit `.dev.vars` so it contains your real key:
+
+```bash
+TWELVEDATA_API_KEY=your_api_key_here
+```
+
 3. Start the dev server:
 
 ```bash
@@ -31,6 +37,8 @@ npm run dev
 ```
 
 The app will render a feed error if `TWELVEDATA_API_KEY` is missing or invalid.
+Local dev now reads the key from `.dev.vars` or from a shell-exported
+`TWELVEDATA_API_KEY`.
 
 ## Environment
 
