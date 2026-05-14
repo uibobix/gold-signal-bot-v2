@@ -83,3 +83,6 @@ npm run deploy
 
 Use [COLLABORATION.md](/private/tmp/gold-signal-bot-v2/COLLABORATION.md) as the
 working agreement for Lovable, Cursor, and Codex.
+
+Use [SESSION_HANDOFF.md](/private/tmp/gold-signal-bot-v2/SESSION_HANDOFF.md) as
+the checklist for switching from one tool to another without losing state.
