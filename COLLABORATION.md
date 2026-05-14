@@ -4,6 +4,14 @@ This repo uses GitHub as the source of truth. The handoff between Lovable,
 Cursor, and Codex happens through branches, commits, and PR descriptions, not
 through chat memory.
 
+## Runtime Context
+
+- The repo is Cloudflare-compatible, but the primary live workflow for this
+  project is Lovable.
+- Use Wrangler directly only when you intentionally want a non-Lovable deploy.
+- For normal live updates, merge to `main`, sync Lovable, and publish/update
+  there.
+
 ## Core Rules
 
 - `main` is the stable branch and the only branch Lovable should publish from.
@@ -35,6 +43,7 @@ Before working in any tool:
 2. Read [SESSION_HANDOFF.md](/private/tmp/gold-signal-bot-v2/SESSION_HANDOFF.md).
 3. Check the active PR or latest commit on the branch.
 4. Verify whether Lovable is currently attached to `main` or another branch.
+5. Confirm whether the branch already has a handoff note in the PR template.
 
 ## Session End
 
@@ -48,6 +57,8 @@ Before leaving any tool:
    - what is blocked
    - what the next tool should do
 4. If `main` changed, sync Lovable and publish/update the app if needed.
+5. If production behavior changed, note whether secrets or manual publish steps
+   are required.
 
 ## Merge Flow
 

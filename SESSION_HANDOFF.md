@@ -3,6 +3,13 @@
 Use this file as the operating checklist when switching between Lovable, Cursor,
 and Codex because tool memory does not transfer, but GitHub state does.
 
+## Branch Naming
+
+- `main`: stable branch
+- `codex/*`: Codex work
+- `cursor/*`: Cursor work
+- `lovable/*`: optional Lovable staging work
+
 ## Start Checklist
 
 1. Confirm the repo and branch you are about to edit.
@@ -10,6 +17,7 @@ and Codex because tool memory does not transfer, but GitHub state does.
 3. Read the latest PR description or latest commit message on that branch.
 4. Check whether there are open comments, failing checks, or missing secrets.
 5. Confirm whether Lovable is publishing from `main`.
+6. Read the PR template fields if the branch already has an open PR.
 
 ## End Checklist
 
@@ -23,11 +31,13 @@ and Codex because tool memory does not transfer, but GitHub state does.
    - whether production secrets or publishing steps are required
 4. If the branch is ready, open or update the PR into `main`.
 5. If `main` changed, re-sync Lovable and publish/update the live app.
+6. If you are handing off mid-task, say which tool should pick it up next.
 
 ## Required Handoff Fields
 
 Every branch handoff should capture these fields somewhere visible on GitHub:
 
+- active tool
 - scope
 - files changed
 - test status
@@ -51,6 +61,7 @@ If one service hits limits mid-task:
 2. Write a short PR comment or commit message with the current state.
 3. Move to the next service.
 4. Continue from the pushed branch, not from local unstaged work.
+5. Do not rewrite the task from memory if the branch or PR can say it directly.
 
 ## Lovable-Specific Notes
 
@@ -58,6 +69,7 @@ If one service hits limits mid-task:
 - After merging to `main`, Lovable may still need a manual sync and
   publish/update step.
 - Lovable Cloud secrets must contain `TWELVEDATA_API_KEY`.
+- If Lovable looks stale, verify branch sync before debugging app logic.
 
 ## Cursor-Specific Notes
 
