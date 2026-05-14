@@ -193,13 +193,17 @@ function Dashboard() {
           </div>
 
           {/* Backtest Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 animate-reveal" style={{ animationDelay: "175ms" }}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-reveal" style={{ animationDelay: "175ms" }}>
             <Stat label="Backtest Trades" value={`${backtest.trades}`} />
             <Stat label="Win Rate" value={`${backtest.winRate}%`} tone={backtest.winRate >= 50 ? "success" : "danger"} />
-            <Stat label="Avg R per trade" value={`${backtest.avgRR > 0 ? "+" : ""}${backtest.avgRR}R`} tone={backtest.avgRR > 0 ? "success" : "danger"} />
+            <Stat label="Expectancy" value={`${backtest.expectancy > 0 ? "+" : ""}${backtest.expectancy}R`} tone={backtest.expectancy > 0 ? "success" : "danger"} />
             <Stat label="Profit Factor" value={`${backtest.profitFactor}`} tone={backtest.profitFactor >= 1.5 ? "success" : backtest.profitFactor >= 1 ? "muted" : "danger"} />
+            <Stat label="Sharpe" value={`${backtest.sharpe}`} tone={backtest.sharpe >= 1 ? "success" : backtest.sharpe >= 0 ? "muted" : "danger"} />
+            <Stat label="Sortino" value={`${backtest.sortino}`} tone={backtest.sortino >= 1 ? "success" : backtest.sortino >= 0 ? "muted" : "danger"} />
             <Stat label="Net (R)" value={`${backtest.netR > 0 ? "+" : ""}${backtest.netR}R`} tone={backtest.netR > 0 ? "success" : "danger"} />
             <Stat label="Max DD (R)" value={`-${backtest.maxDrawdownR}R`} tone="danger" />
+            <Stat label="In-Sample (70%)" value={`${backtest.inSampleNetR > 0 ? "+" : ""}${backtest.inSampleNetR}R`} tone={backtest.inSampleNetR > 0 ? "success" : "danger"} />
+            <Stat label="Out-of-Sample (30%)" value={`${backtest.outSampleNetR > 0 ? "+" : ""}${backtest.outSampleNetR}R`} tone={backtest.outSampleNetR > 0 ? "success" : "danger"} />
           </div>
 
           <div className="animate-reveal" style={{ animationDelay: "200ms" }}>
