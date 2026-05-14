@@ -153,10 +153,10 @@ function Dashboard() {
               <span className="text-[10px] font-mono text-muted-foreground">{confluence.passed}/{confluence.total}</span>
             </div>
             <div className="space-y-2.5">
-              <Check label="Trends aligned" detail={`H1 ${confluence.h1Trend} · H4 ${confluence.h4Trend} · D1 ${confluence.d1Trend}`} pass={confluence.h1Trend === confluence.h4Trend && confluence.h4Trend === confluence.d1Trend && confluence.h1Trend !== "FLAT"} />
-              <Check label="Active session" detail={confluence.session} pass={confluence.sessionOk} />
-              <Check label="Not choppy" detail={confluence.chop ? "Inside ribbon" : "Trending"} pass={!confluence.chop} />
-              <Check label="DXY confirms" detail={`DXY ${confluence.dxyTrend}`} pass={confluence.dxyOk} />
+              <Check label="HTF bias aligned" detail={`H4 ${confluence.h4Trend} · D1 ${confluence.d1Trend}`} pass={confluence.h4Trend === confluence.d1Trend && confluence.h4Trend !== "FLAT"} />
+              <Check label="Kill zone session" detail={confluence.session} pass={confluence.sessionOk} />
+              <Check label="Trending regime" detail={confluence.chop ? "EMA ribbon tight" : "Expanding"} pass={!confluence.chop} />
+              <Check label="DXY inverse" detail={`DXY ${confluence.dxyTrend}`} pass={confluence.dxyOk} />
             </div>
           </div>
 
