@@ -258,7 +258,7 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
       stopLoss = +(entry + slDist).toFixed(2);
       takeProfit = +(entry - slDist * 2).toFixed(2);
       riskReward = 2;
-    } else if (htfBias !== "FLAT") {
+    } else {
       skipReason = "Trend regime — waiting for clean pullback to EMA20/50 + momentum return";
     }
   }
