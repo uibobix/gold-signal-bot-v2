@@ -1,5 +1,5 @@
 {
-  "name": "gold-signal-bot",
+  "name": "gold-signal-bot-v2",
   "private": true,
   "description": "Hourly XAU/USD signal dashboard powered by TanStack Start and Twelve Data.",
   "sideEffects": false,

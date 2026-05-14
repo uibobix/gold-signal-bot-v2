@@ -1,6 +1,6 @@
-# Gold Signal Bot
+# Gold Signal Bot V2
 
-`gold-signal-bot` is a TanStack Start app that generates hourly `XAU/USD`
+`gold-signal-bot-v2` is a TanStack Start app that generates hourly `XAU/USD`
 signals server-side and renders them in a Cloudflare-ready SSR dashboard.
 
 ## Stack
@@ -78,3 +78,8 @@ npm run deploy
 - The app is SSR and cannot be deployed to a static-only host.
 - `XAU/USD` and `DXY` are fetched server-side; the API key is not exposed to the
   browser.
+
+## Collaboration
+
+Use [COLLABORATION.md](/private/tmp/gold-signal-bot-v2/COLLABORATION.md) as the
+working agreement for Lovable, Cursor, and Codex.
