@@ -24,6 +24,12 @@ npm install
 cp .dev.vars.example .dev.vars
 ```
 
+Then edit `.dev.vars` so it contains your real key:
+
+```bash
+TWELVEDATA_API_KEY=your_api_key_here
+```
+
 3. Start the dev server:
 
 ```bash
@@ -31,6 +37,8 @@ npm run dev
 ```
 
 The app will render a feed error if `TWELVEDATA_API_KEY` is missing or invalid.
+Local dev now reads the key from `.dev.vars` or from a shell-exported
+`TWELVEDATA_API_KEY`.
 
 ## Environment
 
@@ -73,6 +81,19 @@ npx wrangler secret put TWELVEDATA_API_KEY
 npm run deploy
 ```
 
+## Primary Workflow
+
+The day-to-day operating model for this project is:
+
+1. GitHub is the source of truth.
+2. Lovable stays connected to `main`.
+3. Cursor and Codex work in feature branches.
+4. Merged changes flow back to Lovable through GitHub sync and
+   publish/update.
+
+If you are running the live app in Lovable, keep `TWELVEDATA_API_KEY` in
+Lovable Cloud secrets and publish from `main` after merges.
+
 ## Notes
 
 - The app is SSR and cannot be deployed to a static-only host.
@@ -83,3 +104,9 @@ npm run deploy
 
 Use [COLLABORATION.md](/private/tmp/gold-signal-bot-v2/COLLABORATION.md) as the
 working agreement for Lovable, Cursor, and Codex.
+
+Use [SESSION_HANDOFF.md](/private/tmp/gold-signal-bot-v2/SESSION_HANDOFF.md) as
+the checklist for switching from one tool to another without losing state.
+
+Use [.github/PULL_REQUEST_TEMPLATE.md](/private/tmp/gold-signal-bot-v2/.github/PULL_REQUEST_TEMPLATE.md)
+to capture test status, publish state, blockers, and next steps inside each PR.

@@ -102,6 +102,35 @@ export type SignalResult =
     }
   | { ok: false; error: string };
 
+async function readLocalSecretFromDevVars(name: string): Promise<string | undefined> {
+  try {
+    const [{ readFile }, path] = await Promise.all([
+      import("node:fs/promises"),
+      import("node:path"),
+    ]);
+    const filePath = path.resolve(process.cwd(), ".dev.vars");
+    const file = await readFile(filePath, "utf8");
+    for (const line of file.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim();
+      if (key === name && value) return value;
+    }
+  } catch {
+    // Local dev may not have a .dev.vars file, and Cloudflare runtime has no filesystem access.
+  }
+  return undefined;
+}
+
+async function resolveTwelveDataApiKey(): Promise<string | undefined> {
+  const fromProcess = process.env.TWELVEDATA_API_KEY?.trim();
+  if (fromProcess) return fromProcess;
+  return readLocalSecretFromDevVars("TWELVEDATA_API_KEY");
+}
+
 // =============== math primitives ===============
 function ema(values: number[], period: number): number[] {
   const k = 2 / (period + 1);
@@ -557,7 +586,7 @@ async function fetchSeries(
 
 export const getSignal = createServerFn({ method: "GET" }).handler(
   async (): Promise<SignalResult> => {
-    const apiKey = process.env.TWELVEDATA_API_KEY;
+    const apiKey = await resolveTwelveDataApiKey();
     if (!apiKey) return { ok: false, error: "TWELVEDATA_API_KEY is not configured" };
 
     try {
