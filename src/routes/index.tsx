@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "High-conviction XAUUSD signals with multi-timeframe confluence, session filter, DXY confirmation, and live backtest stats.",
+          "Selective XAUUSD trend-pullback signals with multi-timeframe alignment, session filtering, and live backtest stats.",
       },
     ],
   }),
@@ -21,9 +21,6 @@ export const Route = createFileRoute("/")({
 
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const trendColor = (t: string) =>
-  t === "UP" ? "text-success" : t === "DOWN" ? "text-danger" : "text-muted-foreground";
-
 function Dashboard() {
   const fetchSignal = useServerFn(getSignal);
   const { data, isLoading, refetch, isFetching } = useQuery<SignalResult>({
@@ -177,9 +174,7 @@ function Dashboard() {
               <h2 className={`text-4xl font-mono font-bold mb-1 ${sigColor}`}>{signal.type}</h2>
               {signal.playbook !== "NONE" && (
                 <span className="inline-block text-[9px] font-mono uppercase tracking-widest border border-accent/40 bg-accent/10 text-accent px-1.5 py-0.5 mb-2">
-                  {signal.playbook === "TREND_PULLBACK"
-                    ? "Playbook A · Trend Pullback"
-                    : "Playbook B · Mean Reversion"}
+                  Single Sleeve · Trend Pullback
                 </span>
               )}
               <p className="text-sm text-muted-foreground">
@@ -232,19 +227,14 @@ function Dashboard() {
             </div>
             <div className="space-y-2.5">
               <Check
-                label={
-                  signal.playbook === "MEAN_REVERSION" ? "Range regime active" : "HTF bias aligned"
-                }
-                detail={
-                  signal.playbook === "MEAN_REVERSION"
-                    ? `ADX ${confluence.adx}`
-                    : `H4 ${confluence.h4Trend} · D1 ${confluence.d1Trend}`
-                }
-                pass={
-                  signal.playbook === "MEAN_REVERSION"
-                    ? confluence.regime === "RANGE"
-                    : confluence.h4Trend === confluence.d1Trend && confluence.h4Trend !== "FLAT"
-                }
+                label="HTF bias aligned"
+                detail={`H4 ${confluence.h4Trend} · D1 ${confluence.d1Trend}`}
+                pass={confluence.h4Trend === confluence.d1Trend && confluence.h4Trend !== "FLAT"}
+              />
+              <Check
+                label="H1 structure stacked"
+                detail={`EMA20 / EMA50 / EMA200`}
+                pass={confluence.h1StructureOk}
               />
               <Check
                 label="Kill zone session"
@@ -252,12 +242,12 @@ function Dashboard() {
                 pass={confluence.sessionOk}
               />
               <Check
-                label="Regime detected"
+                label="Trend regime active"
                 detail={`${confluence.regime} · ADX ${confluence.adx}`}
-                pass={confluence.regime !== "CHOP"}
+                pass={confluence.regime === "TREND"}
               />
               <Check
-                label="DXY inverse"
+                label="DXY supportive"
                 detail={`DXY ${confluence.dxyTrend}`}
                 pass={confluence.dxyOk}
               />
@@ -281,7 +271,7 @@ function Dashboard() {
               />
               <Row
                 label="ADX (14)"
-                value={`${indicators.adx} ${indicators.adx >= 25 ? "trending" : indicators.adx < 20 ? "ranging" : "weak"}`}
+                value={`${indicators.adx} ${indicators.adx >= 25 ? "trending" : "building"}`}
                 tone={indicators.adx >= 25 ? "success" : "muted"}
               />
               <Row
@@ -290,16 +280,20 @@ function Dashboard() {
                 tone={indicators.macd > 0 ? "success" : "danger"}
               />
               <Row
+                label="HTF Bias"
+                value={`${confluence.h4Trend} / ${confluence.d1Trend}`}
+                tone={
+                  confluence.h4Trend === confluence.d1Trend && confluence.h4Trend !== "FLAT"
+                    ? "success"
+                    : "muted"
+                }
+              />
+              <Row
                 label="EMA 20 / 50"
                 value={`${fmt(indicators.ema20)} / ${fmt(indicators.ema50)}`}
                 tone="muted"
               />
               <Row label="EMA 200" value={fmt(indicators.ema200)} tone="muted" />
-              <Row
-                label="BB(20,2)"
-                value={`${fmt(indicators.bbLower)} – ${fmt(indicators.bbUpper)}`}
-                tone="muted"
-              />
               <Row label="ATR (14)" value={fmt(indicators.atr)} tone="muted" />
             </div>
           </div>
@@ -435,13 +429,14 @@ function Dashboard() {
               </table>
             </div>
             <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed max-w-2xl">
-              <strong className="text-foreground">Strategy v3.1 — Adaptive Hybrid:</strong> ADX
-              gates the regime. Trending markets (ADX≥22) trade Playbook A: H4+D1 aligned + price
-              pullback into EMA20/50 + RSI rotation, 1.5×ATR stop, 1:2 RR. Ranging markets
-              (ADX&lt;20) trade Playbook B: BB(20,2) outer-band tag + RSI extreme reversion to mid.
-              Kill-zone sessions only (London / Overlap / NY). DXY is aligned bar-by-bar in
-              backtests. The 70/30 split is a fixed-rule sample check, not a walk-forward optimizer.
-              Sharpe and Sortino are reported on per-trade R.
+              <strong className="text-foreground">
+                Strategy v4.0 — Single-Sleeve Trend Pullback:
+              </strong>{" "}
+              This bot only takes trend-following setups. It requires ADX≥22, H4/D1 alignment,
+              stacked H1 EMA structure, a pullback into EMA20/50, and RSI rotation back with the
+              trend during London, New York, or overlap hours. DXY is treated as supportive context,
+              not a hard veto. The 70/30 split is a fixed-rule sample check, not a walk-forward
+              optimizer. Sharpe and Sortino are reported on per-trade R.
             </p>
           </div>
         </div>

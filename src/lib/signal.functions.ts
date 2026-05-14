@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 export type Candle = { datetime: string; open: number; high: number; low: number; close: number };
 type Trend = "UP" | "DOWN" | "FLAT";
-type Regime = "TREND" | "RANGE" | "CHOP";
+type Regime = "TREND" | "CHOP";
 type DxySnapshot = { price: number; changePct: number; trend: Trend } | null;
 
 const HOUR_FACTOR_H4 = 4;
@@ -55,15 +55,13 @@ export type SignalResult =
         macdLabel: string;
         atr: number;
         adx: number;
-        bbUpper: number;
-        bbLower: number;
-        bbMid: number;
       };
       confluence: {
         regime: Regime;
         adx: number;
         h4Trend: Trend;
         d1Trend: Trend;
+        h1StructureOk: boolean;
         session: "ASIA" | "LONDON" | "NY" | "OVERLAP" | "CLOSED";
         sessionOk: boolean;
         dxyTrend: Trend;
@@ -73,7 +71,7 @@ export type SignalResult =
       };
       signal: {
         type: "BUY" | "SELL" | "NEUTRAL";
-        playbook: "TREND_PULLBACK" | "MEAN_REVERSION" | "NONE";
+        playbook: "TREND_PULLBACK" | "NONE";
         confidence: number;
         entry: number;
         stopLoss: number;
@@ -110,17 +108,6 @@ function ema(values: number[], period: number): number[] {
   const out: number[] = [values[0]];
   for (let i = 1; i < values.length; i++) out.push(values[i] * k + out[i - 1] * (1 - k));
   return out;
-}
-function sma(values: number[], period: number): number {
-  if (values.length < period) return values[values.length - 1];
-  const s = values.slice(-period).reduce((a, b) => a + b, 0);
-  return s / period;
-}
-function stdev(values: number[], period: number): number {
-  const slice = values.slice(-period);
-  const m = slice.reduce((a, b) => a + b, 0) / slice.length;
-  const v = slice.reduce((a, b) => a + (b - m) ** 2, 0) / slice.length;
-  return Math.sqrt(v);
 }
 function rsiSeries(values: number[], period = 14): number[] {
   const out: number[] = new Array(values.length).fill(50);
@@ -288,12 +275,10 @@ function alignDxyTrends(targetCandles: Candle[], dxyCandles: Candle[] | null): T
   return aligned;
 }
 
-// =============== adaptive hybrid evaluator ===============
-// Playbooks (selected by regime):
-//   A. TREND_PULLBACK: ADX>22 + H4+D1 aligned + price pulled back to EMA20/50 zone
-//      + RSI returning from 40-60 + bullish/bearish candle. SL=1.5*ATR, TP=2*risk (1:2).
-//   B. MEAN_REVERSION: ADX<20 + price tagged BB(20,2) outer band + RSI extreme
-//      (>70 short / <30 long) + against H4 trend allowed. SL=1*ATR, TP=BB mid (1:1+).
+// =============== single-sleeve trend evaluator ===============
+// TREND_PULLBACK:
+//   ADX>=22 + H4/D1 aligned + H1 structure stacked + price pulled back into EMA20/50 zone
+//   + RSI rotating with the trend + confirming candle. DXY is a confidence input, not a veto.
 function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
   if (i < EMA_SLOW_PERIOD) return null;
   const window = candles.slice(0, i + 1);
@@ -309,10 +294,6 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
   const atr = atrArr.at(-1)!;
   const adxArr = adxSeries(window, 14);
   const adx = adxArr.at(-1)!;
-  const bbMid = sma(closes, 20);
-  const bbStd = stdev(closes, 20);
-  const bbUpper = bbMid + 2 * bbStd;
-  const bbLower = bbMid - 2 * bbStd;
   const price = closes[i];
   const cur = candles[i];
 
@@ -323,10 +304,15 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
   const d1Trend: Trend = htfTrend(d1.map((c) => c.close));
   const htfBias: Trend = h4Trend === d1Trend && h4Trend !== "FLAT" ? h4Trend : "FLAT";
 
-  // Regime classification (per research: ADX as regime gate)
+  const h1StructureOk =
+    htfBias === "UP"
+      ? price > ema200v && ema20v > ema50v && ema50v > ema200v
+      : htfBias === "DOWN"
+        ? price < ema200v && ema20v < ema50v && ema50v < ema200v
+        : false;
+
   let regime: Regime = "CHOP";
-  if (adx >= 22) regime = "TREND";
-  else if (adx < 20) regime = "RANGE";
+  if (adx >= 22 && htfBias !== "FLAT") regime = "TREND";
 
   const session = getSession(new Date(cur.datetime + "Z"));
   const sessionOk = session === "LONDON" || session === "NY" || session === "OVERLAP";
@@ -340,24 +326,23 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
   const bearCandle = cur.close < cur.open && cur.close < (cur.open + cur.low) / 2;
 
   let type: "BUY" | "SELL" | "NEUTRAL" = "NEUTRAL";
-  let playbook: "TREND_PULLBACK" | "MEAN_REVERSION" | "NONE" = "NONE";
+  let playbook: "TREND_PULLBACK" | "NONE" = "NONE";
   const entry = +price.toFixed(2);
   let stopLoss = entry,
     takeProfit = entry,
     riskReward = 0;
   let skipReason: string | undefined;
 
-  // ---------- Playbook A: Trend Pullback ----------
   if (regime === "TREND" && sessionOk && htfBias !== "FLAT") {
-    // Pullback zone: between EMA20 and EMA50
     const emaHi = Math.max(ema20v, ema50v);
     const emaLo = Math.min(ema20v, ema50v);
     const inPullback = price >= emaLo - atr * 0.3 && price <= emaHi + atr * 0.3;
     if (
       htfBias === "UP" &&
+      h1StructureOk &&
       inPullback &&
-      rsi > 40 &&
-      rsi < 65 &&
+      rsi >= 42 &&
+      rsi <= 62 &&
       rsi > rsiPrev &&
       bullCandle &&
       rsi < 75
@@ -370,9 +355,10 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
       riskReward = 2;
     } else if (
       htfBias === "DOWN" &&
+      h1StructureOk &&
       inPullback &&
-      rsi < 60 &&
-      rsi > 35 &&
+      rsi <= 58 &&
+      rsi >= 38 &&
       rsi < rsiPrev &&
       bearCandle &&
       rsi > 25
@@ -383,58 +369,30 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
       stopLoss = +(entry + slDist).toFixed(2);
       takeProfit = +(entry - slDist * 2).toFixed(2);
       riskReward = 2;
+    } else if (!h1StructureOk) {
+      skipReason =
+        "Higher-timeframe bias is present, but H1 structure is not stacked with the trend";
     } else {
       skipReason = "Trend regime — waiting for clean pullback to EMA20/50 + momentum return";
     }
-  }
-  // ---------- Playbook B: Mean Reversion ----------
-  else if (regime === "RANGE" && sessionOk) {
-    const tagUpper = cur.high >= bbUpper && cur.close < bbUpper;
-    const tagLower = cur.low <= bbLower && cur.close > bbLower;
-    if (tagLower && rsi < 32 && bullCandle) {
-      playbook = "MEAN_REVERSION";
-      type = "BUY";
-      const slDist = atr * 1.0;
-      stopLoss = +(entry - slDist).toFixed(2);
-      takeProfit = +Math.min(bbMid, entry + slDist * 1.5).toFixed(2);
-      riskReward = +((takeProfit - entry) / slDist).toFixed(2);
-    } else if (tagUpper && rsi > 68 && bearCandle) {
-      playbook = "MEAN_REVERSION";
-      type = "SELL";
-      const slDist = atr * 1.0;
-      stopLoss = +(entry + slDist).toFixed(2);
-      takeProfit = +Math.max(bbMid, entry - slDist * 1.5).toFixed(2);
-      riskReward = +((entry - takeProfit) / slDist).toFixed(2);
-    } else {
-      skipReason = "Range regime — waiting for BB outer-band tag + RSI extreme";
-    }
-  }
-  // ---------- Skip ----------
-  else {
+  } else {
     if (regime === "CHOP")
-      skipReason = `Choppy regime (ADX ${adx.toFixed(0)}) — no edge, stand aside`;
+      skipReason = `Trend strength is not established yet (ADX ${adx.toFixed(0)})`;
     else if (!sessionOk) skipReason = `Outside kill zones (${session})`;
     else if (htfBias === "FLAT") skipReason = `H4 (${h4Trend}) and D1 (${d1Trend}) not aligned`;
   }
 
-  // Confidence scoring (research: confluence-based)
   let confidence = 50;
   if (type !== "NEUTRAL") {
-    confidence = 55;
-    if (playbook === "TREND_PULLBACK") {
-      confidence += 10; // base for trend playbook
-      if (adx >= 28) confidence += 6; // strong trend
-      if (h4Trend === d1Trend) confidence += 6;
-      if (dxyOk) confidence += 5;
-      if (session === "OVERLAP") confidence += 4;
-    } else if (playbook === "MEAN_REVERSION") {
-      confidence += 6;
-      if (adx < 18) confidence += 5;
-      if (rsi > 75 || rsi < 25) confidence += 6;
-      if (session !== "ASIA") confidence += 3;
-    }
+    confidence = 58;
+    if (adx >= 28) confidence += 6;
+    if (h4Trend === d1Trend) confidence += 6;
+    if (h1StructureOk) confidence += 6;
+    if (dxyOk) confidence += 4;
+    else confidence -= 4;
+    if (session === "OVERLAP") confidence += 4;
   }
-  confidence = Math.min(88, confidence);
+  confidence = Math.max(45, Math.min(88, confidence));
 
   return {
     type,
@@ -446,6 +404,7 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
     riskReward,
     h4Trend,
     d1Trend,
+    h1StructureOk,
     session,
     sessionOk,
     dxyOk,
@@ -456,9 +415,6 @@ function evaluateAt(candles: Candle[], i: number, dxyTrend: Trend) {
     ema200v,
     atr,
     adx,
-    bbUpper,
-    bbLower,
-    bbMid,
     regime,
     skipReason,
     htfBias,
@@ -629,9 +585,10 @@ export const getSignal = createServerFn({ method: "GET" }).handler(
       const bt = backtest(candles, alignedDxyTrends);
 
       const checks = [
-        ev.regime !== "CHOP",
+        ev.regime === "TREND",
+        ev.h4Trend === ev.d1Trend && ev.h4Trend !== "FLAT",
+        ev.h1StructureOk,
         ev.sessionOk,
-        ev.regime === "TREND" ? ev.h4Trend === ev.d1Trend && ev.h4Trend !== "FLAT" : ev.adx < 20,
         ev.dxyOk,
       ];
       const passed = checks.filter(Boolean).length;
@@ -642,9 +599,7 @@ export const getSignal = createServerFn({ method: "GET" }).handler(
       const rationale =
         ev.type === "NEUTRAL"
           ? `Stand aside — ${ev.skipReason}. Quality > frequency.`
-          : ev.playbook === "TREND_PULLBACK"
-            ? `${ev.type} via Trend Pullback: ADX ${ev.adx.toFixed(0)} (trending), H4+D1 ${ev.htfBias}, price retraced to EMA20/50 zone, RSI rotating ${ev.rsi.toFixed(0)}, ${ev.session} session. Stop 1.5×ATR, target 1:2 R:R.`
-            : `${ev.type} via Mean Reversion: ADX ${ev.adx.toFixed(0)} (range), price tagged ${ev.type === "BUY" ? "lower" : "upper"} BB(20,2), RSI extreme ${ev.rsi.toFixed(0)}. Stop 1×ATR, target BB mid.`;
+          : `${ev.type} via Trend Pullback: ADX ${ev.adx.toFixed(0)}, H4+D1 ${ev.htfBias}, H1 structure stacked, price retraced into the EMA20/50 zone, RSI rotating ${ev.rsi.toFixed(0)}, ${ev.session} session. Stop 1.5×ATR, target 1:2 R:R.`;
 
       return {
         ok: true,
@@ -665,15 +620,13 @@ export const getSignal = createServerFn({ method: "GET" }).handler(
           macdLabel,
           atr: +ev.atr.toFixed(2),
           adx: +ev.adx.toFixed(1),
-          bbUpper: +ev.bbUpper.toFixed(2),
-          bbLower: +ev.bbLower.toFixed(2),
-          bbMid: +ev.bbMid.toFixed(2),
         },
         confluence: {
           regime: ev.regime,
           adx: +ev.adx.toFixed(1),
           h4Trend: ev.h4Trend,
           d1Trend: ev.d1Trend,
+          h1StructureOk: ev.h1StructureOk,
           session: ev.session,
           sessionOk: ev.sessionOk,
           dxyTrend,
@@ -710,10 +663,10 @@ export const getSignal = createServerFn({ method: "GET" }).handler(
         history: bt.history,
         dxy: dxySnapshot ? { price: dxySnapshot.price, changePct: dxySnapshot.changePct } : null,
         strategy: {
-          name: "Adaptive Hybrid: Trend-Pullback + Mean-Reversion",
-          version: "v3.1",
+          name: "Single-Sleeve Trend Pullback",
+          version: "v4.0",
           notes:
-            "ADX-gated regime switch. Trending (ADX≥22): MTF-aligned EMA pullback, 1.5×ATR stop, 1:2 RR. Range (ADX<20): BB(20,2) outer-band tag + RSI extreme reversion to mid. Kill-zone sessions only. Backtest uses a fixed-rule 70/30 sample split with time-aligned DXY context.",
+            "Single-sleeve trend bot. ADX≥22, H4/D1 alignment, stacked H1 EMA structure, pullback into EMA20/50, and RSI momentum rotation. DXY is a confidence input rather than a hard gate. Backtest uses a fixed-rule 70/30 sample split with time-aligned DXY context.",
         },
         fetchedAt: new Date().toISOString(),
       };
